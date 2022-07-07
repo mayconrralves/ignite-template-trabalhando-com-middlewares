@@ -10,19 +10,56 @@ app.use(cors());
 const users = [];
 
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+  const user = users.find(user => user.username === username);
+  if(!user){
+    return response.status(404).json({ error: "Error Message"});
+  }
+  request.user = user;
+  return next();
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const {todos, pro } = request.user;
+
+  if(pro === true){
+    return next();
+  }
+  if(todos.length >= 10){
+    return response.status(403).json({error: 'Mensagem > 10'});;
+  }
+  return next();
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+  const { id } = request.params;
+  const user = users.find(user=>user.username === username);
+ 
+  if(!user){
+    return response.status(404).json({error: ' no user'});;
+  }
+  
+  if(validate(id) === false){
+    return response.status(400).json({error: 'no validate'});
+  }
+  const todo = user.todos.find(todo=> todo.id === id);
+  if(!todo){
+    return response.status(404).json({error: 'not found'});;
+  }
+  request.user = user;
+  request.todo = todo;
+  return next();
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const { id } = request.params;
+  const user = users.find(user=>user.id === id);
+  if(!user){
+    return response.status(404);
+  }
+  request.user = user;
+  return next();
 }
 
 app.post('/users', (request, response) => {
@@ -90,8 +127,8 @@ app.post('/todos', checksExistsUserAccount, checksCreateTodosUserAvailability, (
 
 app.put('/todos/:id', checksTodoExists, (request, response) => {
   const { title, deadline } = request.body;
+  
   const { todo } = request;
-
   todo.title = title;
   todo.deadline = new Date(deadline);
 
@@ -100,7 +137,6 @@ app.put('/todos/:id', checksTodoExists, (request, response) => {
 
 app.patch('/todos/:id/done', checksTodoExists, (request, response) => {
   const { todo } = request;
-
   todo.done = true;
 
   return response.json(todo);
